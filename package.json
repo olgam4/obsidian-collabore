@@ -1,6 +1,6 @@
 {
-	"name": "obsidian-sample-plugin",
-	"version": "1.1.0",
+	"name": "obsidian-collabore",
+	"version": "1.2.0",
 	"description": "This is a sample plugin for Obsidian (https://obsidian.md)",
 	"main": "main.js",
 	"scripts": {
@@ -8,15 +8,16 @@
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json versions.json"
 	},
-	"bin": {
-		"server": "./bin/server.js"
-	},
+  "type": "module",
 	"keywords": [],
 	"author": "",
 	"license": "MIT",
-	"devDependencies": {
+  "dependencies": {
 		"@codemirror/state": "6.0.1",
 		"@codemirror/view": "6.0.2",
+		"y-codemirror.next": "https://github.com/olgam4/y-codemirror.next#fix"
+  },
+	"devDependencies": {
 		"@types/node": "^16.11.6",
 		"@typescript-eslint/eslint-plugin": "5.29.0",
 		"@typescript-eslint/parser": "5.29.0",
@@ -26,7 +27,6 @@
 		"obsidian": "latest",
 		"tslib": "2.4.0",
 		"typescript": "4.7.4",
-		"y-codemirror.next": "0.3.0",
 		"y-webrtc": "10.2.3",
 		"yjs": "13.5.39"
 	}

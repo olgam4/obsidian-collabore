@@ -1,19 +1,19 @@
-import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting } from 'obsidian';
+import { App, MarkdownView, Modal, Plugin, PluginSettingTab, Setting } from 'obsidian';
 
 import * as Y from 'yjs';
 import { WebrtcProvider } from 'y-webrtc';
 import { yCollab, yUndoManagerKeymap } from 'y-codemirror.next';
 
-import { keymap } from '@codemirror/view'
-
-// Remember to rename these classes and interfaces!
+import { EditorView, keymap } from '@codemirror/view'
 
 interface MyPluginSettings {
+  is_live: boolean;
   mySetting: string;
 }
 
 const DEFAULT_SETTINGS: MyPluginSettings = {
-  mySetting: 'default'
+  is_live: false,
+  mySetting: '',
 }
 
 const goLive = (app: App, name: string, password: string) => {
@@ -26,49 +26,83 @@ const goLive = (app: App, name: string, password: string) => {
 
   provider.awareness.setLocalStateField('user', {
     name: 'Anonymous' + Math.floor(Math.random() * 100),
-    color: '#' + Math.floor(Math.random() * 16777215).toString(16),
+    color: '#1be7ff',
+    colorLight: '#1be7ff33',
   });
 
   const editor = view?.editor;
   const yText = provider.doc.getText('codemirror');
 
   if (yText.toString() !== '') {
-    editor?.setValue(yText.toString());
-  } else {
     editor && editor.getValue() !== '' && text.insert(0, editor.getValue())
+  } else {
+    editor?.setValue(yText.toString());
   }
 
   const undoManager = new Y.UndoManager(yText);
-  return yCollab(
+
+  console.log('yText', yText)
+  debugger
+  const extension = () => yCollab(
     yText,
     provider.awareness,
     { undoManager },
   )
+
+  return {
+    provider,
+    extension,
+  }
 }
 
 export default class MyPlugin extends Plugin {
   settings: MyPluginSettings;
   provider: WebrtcProvider;
+  statusBarItem: HTMLElement;
 
   async onload() {
     await this.loadSettings();
 
-    this.addRibbonIcon('star', 'Go Live', async () => {
-      const cb = (name: string, password: string) => this.registerEditorExtension([
-        keymap.of([
-          ...yUndoManagerKeymap
-        ]),
-        goLive(this.app, name, password)
-      ])
+    this.addRibbonIcon('paper-plane', 'Collaborate', () => {
+      console.log(this.provider?.awareness.getLocalState())
+      console.log(this.provider?.awareness.getStates())
+      console.log(this.app.workspace.getActiveViewOfType(MarkdownView)?.getState())
+      console.log(this.app.workspace.getActiveViewOfType(MarkdownView)?.getEphemeralState())
+      const view = this.app.workspace.getActiveViewOfType(MarkdownView)
+      console.log(view?.sourceMode.cmEditor.cm.state)
+    })
 
+    this.addRibbonIcon('star', 'Go Live', async () => {
+      if (this.statusBarItem && this.statusBarItem.innerText === 'Online') {
+        this.statusBarItem.innerText = 'Offline';
+        this.provider.disconnect();
+        return;
+      }
+
+      const cb = (name: string, password: string) => {
+        const { extension, provider } = goLive(this.app, name, password)
+        this.provider = provider;
+        this.registerEditorExtension([
+          keymap.of([
+            ...yUndoManagerKeymap
+          ]),
+          extension(),
+        ])
+
+        const view = this.app.workspace.getActiveViewOfType(MarkdownView)
+        console.log(view?.getState())
+        console.log(view?.getEphemeralState())
+      }
       new SampleModal(this.app, cb).open();
+
+      this.statusBarItem = this.addStatusBarItem()
+      this.statusBarItem.createEl('span', { text: 'Online' })
     });
 
     this.addSettingTab(new SampleSettingTab(this.app, this));
   }
 
   onunload() {
-
   }
 
   async loadSettings() {
